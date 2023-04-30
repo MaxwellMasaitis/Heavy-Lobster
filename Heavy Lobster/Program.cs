@@ -61,7 +61,7 @@ namespace IngameScript
 
 		double targetRightHipAngle, targetRightKneeAngle, targetRightAnkleAngle, targetLeftHipAngle, targetLeftKneeAngle, targetLeftAnkleAngle;
 		int count, frame, leftFrame;
-		bool readyToCharge;
+		bool readyToCharge, readyToLeap;
 
 		const double TimeStep = 1.0 / 60.0, pComp = 2, iComp = 0, dComp = 0;
 		PID rightHipPid, rightKneePid, rightAnklePid, rightElevPid, rightAzPid, leftHipPid, leftKneePid, leftAnklePid, rollPid, pitchPid, yawPid, leftElevPid, leftAzPid;
@@ -77,7 +77,8 @@ namespace IngameScript
 		{
 			Stand,
 			Walk,
-			Charge
+			Charge,
+			Leap
 		}
 
 		State currentState;
@@ -134,6 +135,7 @@ namespace IngameScript
 			leftFrame = 16;
 
 			readyToCharge = false;
+			readyToLeap = false;
 
 			rollPid = new PID(10, 0, 0, TimeStep);
 			pitchPid = new PID(10, 0, 0, TimeStep);
@@ -219,9 +221,9 @@ namespace IngameScript
 				leftWrist.TargetVelocityRPM = -60;
 				//set turret rotors to 0 and +-10
 				rightTurret.ElevationRotor.TargetVelocityRPM = (float)rightElevPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.ElevationRotor.Angle)));
-				rightTurret.AzimuthRotor.TargetVelocityRPM = (float)rightAzPid.Control(correctError(90, MathHelper.ToDegrees(rightTurret.AzimuthRotor.Angle)));
+				rightTurret.AzimuthRotor.TargetVelocityRPM = (float)rightAzPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.AzimuthRotor.Angle)));
 				leftTurret.ElevationRotor.TargetVelocityRPM = (float)leftElevPid.Control(correctError(0, MathHelper.ToDegrees(leftTurret.ElevationRotor.Angle)));
-				leftTurret.AzimuthRotor.TargetVelocityRPM = (float)leftAzPid.Control(correctError(90, MathHelper.ToDegrees(leftTurret.AzimuthRotor.Angle)));
+				leftTurret.AzimuthRotor.TargetVelocityRPM = (float)leftAzPid.Control(correctError(0, MathHelper.ToDegrees(leftTurret.AzimuthRotor.Angle)));
 			}
 
 			if (currentState == State.Walk)
@@ -234,6 +236,7 @@ namespace IngameScript
 				rightTurret.Enabled = true;
 				leftTurret.Enabled = true;
 				readyToCharge = false;
+				readyToLeap = false;
 
 				leftFrame = frame + 16;
 				if (leftFrame > 31)
@@ -311,6 +314,7 @@ namespace IngameScript
 				rightTurret.Enabled = true;
 				leftTurret.Enabled = true;
 				readyToCharge = false;
+				readyToLeap = false;
 
 				//TODO: move frame resets to a generic state changing funtion.
 				count = 0;
@@ -356,9 +360,9 @@ namespace IngameScript
 			}
 			else if (currentState == State.Charge)
 			{
-				//TODO: reset turret positions also
 				rightTurret.Enabled = false;
 				leftTurret.Enabled = false;
+				readyToLeap = false;
 
 				rightMags.ForEach(item => item.Unlock());
 				leftMags.ForEach(item => item.Unlock());
@@ -372,35 +376,38 @@ namespace IngameScript
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
 
-				if ((Math.Abs(gravityVec.X) < 0.5) && (Math.Abs(gravityVec.Z) < 0.5) && (Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
+				if (!readyToCharge && rightMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && leftMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && (Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
 				{
 					readyToCharge = true;
+					rightMags.ForEach(item => item.Lock());
+					leftMags.ForEach(item => item.Lock());
 				}
-				if (readyToCharge)
+				else if (readyToCharge)
 				{
+					rightMags.ForEach(item => item.Unlock());
+					leftMags.ForEach(item => item.Unlock());
 					// TODO: maybe increase initial thrust (more acceleration) then shorten the times back to 56 & 92?
 					if (1 <= frame && frame < 64)
 					{
 						rightWing.TargetVelocityRPM = 60;
 						leftWing.TargetVelocityRPM = -60;
+						if (20 <= frame)
+						{
+							rearThrust.Enabled = true;
+							rightThrust.Enabled = true;
+							leftThrust.Enabled = true;
+							rearThrust.ThrustOverridePercentage = 1;
+							rightThrust.ThrustOverridePercentage = (float)0.5;
+							leftThrust.ThrustOverridePercentage = (float)0.5;
+						}
 					}
-
-					if (20 <= frame && frame < 64)
-					{
-						rearThrust.Enabled = true;
-						rightThrust.Enabled = true;
-						leftThrust.Enabled = true;
-						rearThrust.ThrustOverridePercentage = 1;
-						rightThrust.ThrustOverridePercentage = (float)0.5;
-						leftThrust.ThrustOverridePercentage = (float)0.5;
-					}
-
-					//TODO: modify this so that if the lobster is detecting an enemy and spins around, the forward thruster doesnt just throw it further back to explode
-					//or even make it so the thrust time and strength is relative to the target?
-					// using the sensor: is the target moving away as you move? are you facing the target? if you're moving away and facing the target, the rear thrusters stay on!
 					// Now uses dampeners?
-					if (frame >= 64)
+					else if (64 <= frame && frame < 108)
 					{
+						//TODO: modify this so that if the lobster is detecting an enemy and spins around, the forward thruster doesnt just throw it further back to explode
+						//or even make it so the thrust time and strength is relative to the target?
+						// using the sensor: is the target moving away as you move? are you facing the target? if you're moving away and facing the target, the rear thrusters stay on!
+
 						rightWing.TargetVelocityRPM = -60;
 						leftWing.TargetVelocityRPM = 60;
 						//rearThrust.Enabled = false;
@@ -414,8 +421,7 @@ namespace IngameScript
 						frontThrust.ThrustOverridePercentage = 0;
 						remoteControl.DampenersOverride = true;
 					}
-
-					if (frame >= 108)
+					else if (frame >= 108)
 					{
 						//frontThrust.ThrustOverridePercentage = 0;
 						remoteControl.DampenersOverride = false;
@@ -441,6 +447,87 @@ namespace IngameScript
 					leftFrame = 16;
 				}
 			}
+			else if (currentState == State.Leap)
+			{
+				rightTurret.Enabled = false;
+				leftTurret.Enabled = false;
+				readyToCharge = false;
+
+				rightMags.ForEach(item => item.Unlock());
+				leftMags.ForEach(item => item.Unlock());
+
+				targetRightHipAngle = -139;
+				targetLeftHipAngle = 139;
+
+				targetRightKneeAngle = 176;
+				targetLeftKneeAngle = -176;
+
+				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
+				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
+
+				if (!readyToLeap && rightMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && leftMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && (Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
+				{
+					readyToLeap = true;
+					rightMags.ForEach(item => item.Lock());
+					leftMags.ForEach(item => item.Lock());
+				}
+				else if (readyToLeap)
+				{
+					rightMags.ForEach(item => item.Unlock());
+					leftMags.ForEach(item => item.Unlock());
+
+					targetRightHipAngle = initialHip;
+					targetLeftHipAngle = -initialHip;
+
+					targetRightKneeAngle = initialKnee;
+					targetLeftKneeAngle = -initialKnee;
+
+					frontThrust.Enabled = true;
+					rightThrust.Enabled = true;
+					leftThrust.Enabled = true;
+
+					if (frame < 30)
+					{
+						frontThrust.ThrustOverridePercentage = 1;
+						rightThrust.ThrustOverridePercentage = 1;
+						leftThrust.ThrustOverridePercentage = 1;
+
+						targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle - 10;
+						targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle + 10;
+					}
+					else if (frame >= 30)
+					{
+						frontThrust.ThrustOverridePercentage = 0;
+						rightThrust.ThrustOverridePercentage = 0;
+						leftThrust.ThrustOverridePercentage = 0;
+						remoteControl.DampenersOverride = true;
+
+						targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
+						targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
+
+						if (rightMags.Any(i => i.LockMode == LandingGearMode.ReadyToLock) || leftMags.Any(i => i.LockMode == LandingGearMode.ReadyToLock))
+						{
+							rightMags.ForEach(item => item.Lock());
+							leftMags.ForEach(item => item.Lock());
+							remoteControl.DampenersOverride = false;
+							currentState = State.Stand;
+						}
+					}
+
+					count += 1;
+					if (count > frameDivisor)
+					{
+						count = 0;
+						frame += 1;
+					}
+				}
+				else
+				{
+					count = 0;
+					frame = 0;
+					leftFrame = 16;
+				}
+			}
 
 			Echo("Hip Target");
 			Echo(targetRightHipAngle.ToString());
@@ -451,12 +538,12 @@ namespace IngameScript
 			Echo("Hip Current");
 			Echo(MathHelper.ToDegrees(rightHip.Angle).ToString());
 			Echo("Hip Error");
-			Echo((targetRightHipAngle - MathHelper.ToDegrees(rightHip.Angle)).ToString());
-			Echo("Corrected Hip Error");
+			//Echo((targetRightHipAngle - MathHelper.ToDegrees(rightHip.Angle)).ToString());
+			//Echo("Corrected Hip Error");
 			Echo((correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))).ToString());
 			Echo("Knee Error");
-			Echo((targetRightKneeAngle - MathHelper.ToDegrees(rightKnee.Angle)).ToString());
-			Echo("Corrected Knee Error");
+			//Echo((targetRightKneeAngle - MathHelper.ToDegrees(rightKnee.Angle)).ToString());
+			//Echo("Corrected Knee Error");
 			Echo((correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))).ToString());
 
 			rightHip.TargetVelocityRPM = (float)rightHipPid.Control(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle)));
@@ -465,7 +552,6 @@ namespace IngameScript
 			leftHip.TargetVelocityRPM = (float)leftHipPid.Control(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle)));
 			leftKnee.TargetVelocityRPM = (float)leftKneePid.Control(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle)));
 			leftAnkle.TargetVelocityRPM = (float)leftAnklePid.Control(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle)));
-
 		}
 
 		public double correctError(double target, double current)
