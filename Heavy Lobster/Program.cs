@@ -137,6 +137,9 @@ namespace IngameScript
 			readyToCharge = false;
 			readyToLeap = false;
 
+			//TODO: move the overrides?
+			rightGyro.GyroOverride = true;
+			leftGyro.GyroOverride = true;
 			rollPid = new PID(10, 0, 0, TimeStep);
 			pitchPid = new PID(10, 0, 0, TimeStep);
 			//recheck this - 8 0 9 was working ok in space, but it doesnt seem any more effective on land than 10 0 0
