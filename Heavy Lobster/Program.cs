@@ -491,7 +491,8 @@ namespace IngameScript
 
 					if (frame < 30)
 					{
-						//remoteControl.CalculateShipMass().PhysicalMass;
+						//Approximately this in 1g agrav:
+						//2000 / remoteControl.CalculateShipMass().PhysicalMass;
 						frontThrust.ThrustOverridePercentage = 1;
 						rightThrust.ThrustOverridePercentage = 1;
 						leftThrust.ThrustOverridePercentage = 1;
