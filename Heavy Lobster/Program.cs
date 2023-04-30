@@ -64,7 +64,7 @@ namespace IngameScript
 		bool readyToCharge;
 
 		const double TimeStep = 1.0 / 60.0, pComp = 2, iComp = 0, dComp = 0;
-		PID rightHipPid, rightKneePid, rightAnklePid, leftHipPid, leftKneePid, leftAnklePid, rollPid, pitchPid, yawPid;
+		PID rightHipPid, rightKneePid, rightAnklePid, rightElevPid, rightAzPid, leftHipPid, leftKneePid, leftAnklePid, rollPid, pitchPid, yawPid, leftElevPid, leftAzPid;
 		const int frameDivisor = 2;
 		const float initialHip = 3, initialKnee = 17, degreesPerFrame = (float)5.625 * frameDivisor;
 
@@ -99,6 +99,8 @@ namespace IngameScript
 			rightHipPid = new PID(pComp, iComp, dComp, TimeStep);
 			rightKneePid = new PID(pComp, iComp, dComp, TimeStep);
 			rightAnklePid = new PID(pComp, iComp, dComp, TimeStep);
+			rightElevPid = new PID(pComp, iComp, dComp, TimeStep);
+			rightAzPid = new PID(pComp, iComp, dComp, TimeStep);
 			rightGyro = GridTerminalSystem.GetBlockWithName("Lobster Gyroscope Right") as IMyGyro;
 			rightTurret = GridTerminalSystem.GetBlockWithName("Lobster Claw Turret Controller Right") as IMyTurretControlBlock;
 			IMyBlockGroup rightMagsGroup = GridTerminalSystem.GetBlockGroupWithName("Lobster Magnetic Plates Right");
@@ -113,6 +115,8 @@ namespace IngameScript
 			leftHipPid = new PID(pComp, iComp, dComp, TimeStep);
 			leftKneePid = new PID(pComp, iComp, dComp, TimeStep);
 			leftAnklePid = new PID(pComp, iComp, dComp, TimeStep);
+			leftElevPid = new PID(pComp, iComp, dComp, TimeStep);
+			leftAzPid = new PID(pComp, iComp, dComp, TimeStep);
 			leftGyro = GridTerminalSystem.GetBlockWithName("Lobster Gyroscope Left") as IMyGyro;
 			leftTurret = GridTerminalSystem.GetBlockWithName("Lobster Claw Turret Controller Left") as IMyTurretControlBlock;
 			IMyBlockGroup leftMagsGroup = GridTerminalSystem.GetBlockGroupWithName("Lobster Magnetic Plates Left");
@@ -214,6 +218,10 @@ namespace IngameScript
 				rightWrist.TargetVelocityRPM = -60;
 				leftWrist.TargetVelocityRPM = -60;
 				//set turret rotors to 0 and +-10
+				rightTurret.ElevationRotor.TargetVelocityRPM = (float)rightElevPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.ElevationRotor.Angle)));
+				rightTurret.AzimuthRotor.TargetVelocityRPM = (float)rightAzPid.Control(correctError(90, MathHelper.ToDegrees(rightTurret.AzimuthRotor.Angle)));
+				leftTurret.ElevationRotor.TargetVelocityRPM = (float)leftElevPid.Control(correctError(0, MathHelper.ToDegrees(leftTurret.ElevationRotor.Angle)));
+				leftTurret.AzimuthRotor.TargetVelocityRPM = (float)leftAzPid.Control(correctError(90, MathHelper.ToDegrees(leftTurret.AzimuthRotor.Angle)));
 			}
 
 			if (currentState == State.Walk)
@@ -322,7 +330,7 @@ namespace IngameScript
 
 				if ((Math.Abs(gravityVec.X) < 0.5) && (Math.Abs(gravityVec.Z) < 0.5))
 				{
-					if ((Math.Abs(correctError(targetRightHipAngle, (rightHip.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, (rightKnee.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, (rightAnkle.Angle * 180 / Math.PI))) < 0.1))
+					if ((Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1))
 					{
 						rightMags.ForEach(item => item.Lock());
 					}
@@ -330,7 +338,7 @@ namespace IngameScript
 					{
 						rightMags.ForEach(item => item.Unlock());
 					}
-					if ((Math.Abs(correctError(targetLeftHipAngle, (leftHip.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, (leftKnee.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, (leftAnkle.Angle * 180 / Math.PI))) < 0.1))
+					if ((Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
 					{
 						leftMags.ForEach(item => item.Lock());
 					}
@@ -364,7 +372,7 @@ namespace IngameScript
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
 
-				if ((Math.Abs(gravityVec.X) < 0.5) && (Math.Abs(gravityVec.Z) < 0.5) && (Math.Abs(correctError(targetRightHipAngle, (rightHip.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, (rightKnee.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, (rightAnkle.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, (leftHip.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, (leftKnee.Angle * 180 / Math.PI))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, (leftAnkle.Angle * 180 / Math.PI))) < 0.1))
+				if ((Math.Abs(gravityVec.X) < 0.5) && (Math.Abs(gravityVec.Z) < 0.5) && (Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
 				{
 					readyToCharge = true;
 				}
@@ -441,22 +449,22 @@ namespace IngameScript
 			Echo("Ankle Target");
 			Echo(targetRightAnkleAngle.ToString());
 			Echo("Hip Current");
-			Echo((rightHip.Angle * 180 / Math.PI).ToString());
+			Echo(MathHelper.ToDegrees(rightHip.Angle).ToString());
 			Echo("Hip Error");
-			Echo((targetRightHipAngle - (rightHip.Angle * 180 / Math.PI)).ToString());
+			Echo((targetRightHipAngle - MathHelper.ToDegrees(rightHip.Angle)).ToString());
 			Echo("Corrected Hip Error");
-			Echo((correctError(targetRightHipAngle, (rightHip.Angle * 180 / Math.PI))).ToString());
+			Echo((correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))).ToString());
 			Echo("Knee Error");
-			Echo((targetRightKneeAngle - (rightKnee.Angle * 180 / Math.PI)).ToString());
+			Echo((targetRightKneeAngle - MathHelper.ToDegrees(rightKnee.Angle)).ToString());
 			Echo("Corrected Knee Error");
-			Echo((correctError(targetRightKneeAngle, (rightKnee.Angle * 180 / Math.PI))).ToString());
+			Echo((correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))).ToString());
 
-			rightHip.TargetVelocityRPM = (float)rightHipPid.Control(correctError(targetRightHipAngle, (rightHip.Angle * 180 / Math.PI)));
-			rightKnee.TargetVelocityRPM = (float)rightKneePid.Control(correctError(targetRightKneeAngle, (rightKnee.Angle * 180 / Math.PI)));
-			rightAnkle.TargetVelocityRPM = (float)rightAnklePid.Control(correctError(targetRightAnkleAngle, (rightAnkle.Angle * 180 / Math.PI)));
-			leftHip.TargetVelocityRPM = (float)leftHipPid.Control(correctError(targetLeftHipAngle, (leftHip.Angle * 180 / Math.PI)));
-			leftKnee.TargetVelocityRPM = (float)leftKneePid.Control(correctError(targetLeftKneeAngle, (leftKnee.Angle * 180 / Math.PI)));
-			leftAnkle.TargetVelocityRPM = (float)leftAnklePid.Control(correctError(targetLeftAnkleAngle, (leftAnkle.Angle * 180 / Math.PI)));
+			rightHip.TargetVelocityRPM = (float)rightHipPid.Control(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle)));
+			rightKnee.TargetVelocityRPM = (float)rightKneePid.Control(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle)));
+			rightAnkle.TargetVelocityRPM = (float)rightAnklePid.Control(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle)));
+			leftHip.TargetVelocityRPM = (float)leftHipPid.Control(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle)));
+			leftKnee.TargetVelocityRPM = (float)leftKneePid.Control(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle)));
+			leftAnkle.TargetVelocityRPM = (float)leftAnklePid.Control(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle)));
 
 		}
 
