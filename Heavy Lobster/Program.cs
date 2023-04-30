@@ -172,7 +172,6 @@ namespace IngameScript
 					Echo($"Unknown command {command}");
 				}
 			}
-
 			gravityVec = Vector3D.TransformNormal(remoteControl.GetTotalGravity(), MatrixD.Transpose(remoteControl.WorldMatrix));
 			Echo("Gravity X");
 			Echo(gravityVec.X.ToString()); // Roll, - = left, + = right
@@ -452,6 +451,7 @@ namespace IngameScript
 			}
 			else if (currentState == State.Leap)
 			{
+				//TODO: make leap power a factor of the effective gravity magnitude
 				rightTurret.Enabled = false;
 				leftTurret.Enabled = false;
 				readyToCharge = false;
@@ -491,6 +491,7 @@ namespace IngameScript
 
 					if (frame < 30)
 					{
+						//remoteControl.CalculateShipMass().PhysicalMass;
 						frontThrust.ThrustOverridePercentage = 1;
 						rightThrust.ThrustOverridePercentage = 1;
 						leftThrust.ThrustOverridePercentage = 1;
