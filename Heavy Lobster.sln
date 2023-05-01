@@ -5,7 +5,13 @@ VisualStudioVersion = 16.0.33529.622
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Heavy Lobster", "Heavy Lobster\Heavy Lobster.csproj", "{D35AAF9F-1C84-4600-8ED2-5B2A1B4FF381}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "PID", "..\..\Mixins\PID\PID\PID.shproj", "{61EBA249-19F3-48B6-A25B-A4CEE90168BA}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		..\..\Mixins\PID\PID\PID.projitems*{61eba249-19f3-48b6-a25b-a4cee90168ba}*SharedItemsImports = 13
+		..\..\Mixins\PID\PID\PID.projitems*{d35aaf9f-1c84-4600-8ed2-5b2a1b4ff381}*SharedItemsImports = 4
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 	EndGlobalSection
