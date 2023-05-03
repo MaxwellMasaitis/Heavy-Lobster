@@ -60,13 +60,12 @@ namespace IngameScript
 		IMyMotorStator rightWing, rightHip, rightKnee, rightAnkle, rightWrist, leftWing, leftHip, leftKnee, leftAnkle, leftWrist;
 
 		double targetRightHipAngle, targetRightKneeAngle, targetRightAnkleAngle, targetLeftHipAngle, targetLeftKneeAngle, targetLeftAnkleAngle;
-		int count, frame, leftFrame;
+		int frame, leftFrame;
 		bool readyToCharge, readyToLeap;
 
-		const double TimeStep = 1.0 / 60.0, pComp = 2, iComp = 0, dComp = 0;
+		const double TimeStep = 1.0 / 60.0, pComp = 1, iComp = 0, dComp = 0;
 		PID rightHipPid, rightKneePid, rightAnklePid, rightElevPid, rightAzPid, leftHipPid, leftKneePid, leftAnklePid, rollPid, pitchPid, yawPid, leftElevPid, leftAzPid;
-		const int frameDivisor = 2;
-		const float initialHip = 3, initialKnee = 17, degreesPerFrame = (float)5.625 * frameDivisor;
+		const float initialHip = 24, initialKnee = 15, degreesPerFrame = (float)5.625;
 
 		List<IMyLandingGear> leftMags, rightMags;
 
@@ -130,9 +129,8 @@ namespace IngameScript
 			leftThrust = GridTerminalSystem.GetBlockWithName("Lobster Hydrogen Thruster Rear Left") as IMyThrust;
 
 			currentState = State.Stand;
-			count = 0;
 			frame = 0;
-			leftFrame = 16;
+			leftFrame = 32;
 
 			readyToCharge = false;
 			readyToLeap = false;
@@ -151,7 +149,7 @@ namespace IngameScript
 			Enum.TryParse(_commandLine.Argument(1), out currentState);
 		}
 
-		//TODO: save current state and frame/count data?
+		//TODO: save current state and frame data?
 
 		public void Main(string argument, UpdateType updateSource)
 		{
@@ -240,71 +238,67 @@ namespace IngameScript
 				readyToCharge = false;
 				readyToLeap = false;
 
-				leftFrame = frame + 16;
-				if (leftFrame > 31)
+				leftFrame = frame + 32;
+				if (leftFrame > 63)
 				{
-					leftFrame -= 32;
+					leftFrame -= 64;
 				}
 
 				Echo("Frame");
 				Echo(frame.ToString());
 
-				targetRightHipAngle = initialHip + frame * degreesPerFrame;
-				targetLeftHipAngle = -(initialHip + leftFrame * degreesPerFrame);
+				targetRightHipAngle = initialHip + (frame+1) * degreesPerFrame;
+				targetLeftHipAngle = -(initialHip + (leftFrame+1) * degreesPerFrame);
 
-				targetRightKneeAngle = initialKnee - frame * degreesPerFrame;
-				targetLeftKneeAngle = -(initialKnee - leftFrame * degreesPerFrame);
+				targetRightKneeAngle = initialKnee - (frame+1) * degreesPerFrame;
+				targetLeftKneeAngle = -(initialKnee - (leftFrame+1) * degreesPerFrame);
 
-				// -10 degrees on frames 8-19
+				// -10 degrees on frames 16-39
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
-				if (8 <= frame && frame <= 19)
+				if (16 <= frame && frame <= 39)
 				{
 					targetRightAnkleAngle = targetRightAnkleAngle - 10;
 				}
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
-				if (8 <= leftFrame && leftFrame <= 19)
+				if (16 <= leftFrame && leftFrame <= 39)
 				{
 					targetLeftAnkleAngle = targetLeftAnkleAngle + 10;
 				}
 
-				if (7 <= frame && frame <= 19)
+				if (16 <= frame && frame <= 39)
 				{
 					rightMags.ForEach(item => item.Unlock());
 				}
-				else if (24 <= frame)
+				else if (47 <= frame || frame < 16)
 				{
 					rightMags.ForEach(item => item.Lock());
 				}
-				if (7 <= leftFrame && leftFrame <= 19)
+				if (16 <= leftFrame && leftFrame <= 39)
 				{
 					leftMags.ForEach(item => item.Unlock());
 				}
-				else if (24 <= leftFrame)
+				else if (47 <= leftFrame || frame < 16)
 				{
 					leftMags.ForEach(item => item.Lock());
 				}
 
-				if (frame == 10 || leftFrame == 10)
+				if (frame == 20 || leftFrame == 20)
 				{
 					rightWing.TargetVelocityRPM = 60;
 					leftWing.TargetVelocityRPM = -60;
 				}
-				else if (frame == 14 || leftFrame == 14)
+				else if (frame == 28 || leftFrame == 28)
 				{
 					rightWing.TargetVelocityRPM = -60;
 					leftWing.TargetVelocityRPM = 60;
 				}
 
-				count += 1;
-				if (count > frameDivisor)
+				frame += 1;
+				if (frame > 63)
 				{
-					count = 0;
-					frame += 1;
-					if (frame > 31)
-					{
-						frame = 0;
-					}
+					frame = 0;
 				}
+
 			}
 			else if (currentState == State.Stand)
 			{
@@ -319,9 +313,8 @@ namespace IngameScript
 				readyToLeap = false;
 
 				//TODO: move frame resets to a generic state changing funtion.
-				count = 0;
 				frame = 0;
-				leftFrame = 16;
+				leftFrame = 32;
 				targetRightHipAngle = initialHip;
 				targetLeftHipAngle = -initialHip;
 
@@ -369,11 +362,11 @@ namespace IngameScript
 				rightMags.ForEach(item => item.Unlock());
 				leftMags.ForEach(item => item.Unlock());
 
-				targetRightHipAngle = 149;
-				targetLeftHipAngle = -149;
+				targetRightHipAngle = 179;
+				targetLeftHipAngle = -targetRightHipAngle;
 
-				targetRightKneeAngle = -142;
-				targetLeftKneeAngle = 142;
+				targetRightKneeAngle = -187;
+				targetLeftKneeAngle = -targetRightKneeAngle;
 
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
@@ -389,11 +382,11 @@ namespace IngameScript
 					rightMags.ForEach(item => item.Unlock());
 					leftMags.ForEach(item => item.Unlock());
 					// TODO: maybe increase initial thrust (more acceleration) then shorten the times back to 56 & 92?
-					if (1 <= frame && frame < 64)
+					if (3 <= frame && frame < 168)
 					{
 						rightWing.TargetVelocityRPM = 60;
 						leftWing.TargetVelocityRPM = -60;
-						if (20 <= frame)
+						if (40 <= frame)
 						{
 							rearThrust.Enabled = true;
 							rightThrust.Enabled = true;
@@ -404,7 +397,7 @@ namespace IngameScript
 						}
 					}
 					// Now uses dampeners?
-					else if (64 <= frame && frame < 108)
+					else if (168 <= frame && frame < 336)
 					{
 						//TODO: modify this so that if the lobster is detecting an enemy and spins around, the forward thruster doesnt just throw it further back to explode
 						//or even make it so the thrust time and strength is relative to the target?
@@ -423,19 +416,14 @@ namespace IngameScript
 						frontThrust.ThrustOverridePercentage = 0;
 						remoteControl.DampenersOverride = true;
 					}
-					else if (frame >= 108)
+					else if (frame >= 336)
 					{
 						//frontThrust.ThrustOverridePercentage = 0;
 						remoteControl.DampenersOverride = false;
 						currentState = State.Stand;
 					}
 
-					count += 1;
-					if (count > frameDivisor)
-					{
-						count = 0;
-						frame += 1;
-					}
+					frame += 1;
 				}
 				else
 				{
@@ -444,9 +432,8 @@ namespace IngameScript
 					rightThrust.Enabled = false;
 					leftThrust.Enabled = false;
 					//TODO: move frame resets to a generic state changing funtion.
-					count = 0;
 					frame = 0;
-					leftFrame = 16;
+					leftFrame = 32;
 				}
 			}
 			else if (currentState == State.Leap)
@@ -460,11 +447,11 @@ namespace IngameScript
 				rightMags.ForEach(item => item.Unlock());
 				leftMags.ForEach(item => item.Unlock());
 
-				targetRightHipAngle = -139;
-				targetLeftHipAngle = 139;
+				targetRightHipAngle = 185;
+				targetLeftHipAngle = -targetRightHipAngle;
 
-				targetRightKneeAngle = 176;
-				targetLeftKneeAngle = -176;
+				targetRightKneeAngle = -197;
+				targetLeftKneeAngle = -targetRightKneeAngle;
 
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
@@ -480,6 +467,8 @@ namespace IngameScript
 					rightMags.ForEach(item => item.Unlock());
 					leftMags.ForEach(item => item.Unlock());
 
+					//TODO: increase leaping speed in the new paradigm? for some reason it seems at about half the original speed...
+
 					targetRightHipAngle = initialHip;
 					targetLeftHipAngle = -initialHip;
 
@@ -490,7 +479,7 @@ namespace IngameScript
 					rightThrust.Enabled = true;
 					leftThrust.Enabled = true;
 
-					if (frame < 30)
+					if (frame < 150)
 					{
 						//Approximately this in 1g agrav:
 						//2000 / remoteControl.CalculateShipMass().PhysicalMass;
@@ -501,7 +490,7 @@ namespace IngameScript
 						targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle - 10;
 						targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle + 10;
 					}
-					else if (frame >= 30)
+					else if (frame >= 150)
 					{
 						frontThrust.ThrustOverridePercentage = 0;
 						rightThrust.ThrustOverridePercentage = 0;
@@ -520,18 +509,12 @@ namespace IngameScript
 						}
 					}
 
-					count += 1;
-					if (count > frameDivisor)
-					{
-						count = 0;
-						frame += 1;
-					}
+					frame += 1;
 				}
 				else
 				{
-					count = 0;
 					frame = 0;
-					leftFrame = 16;
+					leftFrame = 32;
 				}
 			}
 
