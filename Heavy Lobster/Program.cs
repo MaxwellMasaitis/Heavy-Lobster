@@ -253,41 +253,41 @@ namespace IngameScript
 				targetRightKneeAngle = initialKnee - (frame+1) * degreesPerFrame;
 				targetLeftKneeAngle = -(initialKnee - (leftFrame+1) * degreesPerFrame);
 
-				// -10 degrees on frames 16-39
+				// -10 degrees on frames 17-40
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
-				if (16 <= frame && frame <= 39)
+				if (17 <= frame && frame <= 40)
 				{
 					targetRightAnkleAngle = targetRightAnkleAngle - 10;
 				}
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
-				if (16 <= leftFrame && leftFrame <= 39)
+				if (17 <= leftFrame && leftFrame <= 40)
 				{
 					targetLeftAnkleAngle = targetLeftAnkleAngle + 10;
 				}
 
-				if (16 <= frame && frame <= 39)
+				if (17 <= frame && frame <= 40)
 				{
 					rightMags.ForEach(item => item.Unlock());
 				}
-				else if (47 <= frame || frame < 16)
+				else if (48 <= frame || frame < 17)
 				{
 					rightMags.ForEach(item => item.Lock());
 				}
-				if (16 <= leftFrame && leftFrame <= 39)
+				if (17 <= leftFrame && leftFrame <= 40)
 				{
 					leftMags.ForEach(item => item.Unlock());
 				}
-				else if (47 <= leftFrame || frame < 16)
+				else if (48 <= leftFrame || frame < 17)
 				{
 					leftMags.ForEach(item => item.Lock());
 				}
 
-				if (frame == 20 || leftFrame == 20)
+				if (frame == 21 || leftFrame == 21)
 				{
 					rightWing.TargetVelocityRPM = 60;
 					leftWing.TargetVelocityRPM = -60;
 				}
-				else if (frame == 28 || leftFrame == 28)
+				else if (frame == 29 || leftFrame == 29)
 				{
 					rightWing.TargetVelocityRPM = -60;
 					leftWing.TargetVelocityRPM = 60;
