@@ -65,10 +65,9 @@ namespace IngameScript
 
 		const double TimeStep = 1.0 / 60.0, pComp = 1, iComp = 0, dComp = 0;
 		PID rightHipPid, rightKneePid, rightAnklePid, rightElevPid, rightAzPid, leftHipPid, leftKneePid, leftAnklePid, rollPid, pitchPid, yawPid, leftElevPid, leftAzPid;
-		const float initialHip = 24, initialKnee = 15, degreesPerFrame = (float)5.625;
+		const float standingHip = 24, standingKnee = 15;
 
 		ImmutableArray<MyTuple<int, int>> legFrames = ImmutableArray.Create(
-			new MyTuple<int, int>(24, 15),
 			new MyTuple<int, int>(26, 14),
 			new MyTuple<int, int>(28, 13),
 			new MyTuple<int, int>(30, 11),
@@ -131,7 +130,9 @@ namespace IngameScript
 			new MyTuple<int, int>(1, 46),
 			new MyTuple<int, int>(5, 40),
 			new MyTuple<int, int>(12, 32),
-			new MyTuple<int, int>(16, 25)
+			new MyTuple<int, int>(16, 25),
+			// this is what would be frame 0, it's moved to the end to simplify the walking code a bit
+			new MyTuple<int, int>(24, 15)
 			);
 
 		List<IMyLandingGear> leftMags, rightMags;
@@ -197,7 +198,7 @@ namespace IngameScript
 
 			currentState = State.Stand;
 			frame = 0;
-			leftFrame = 32;
+			leftFrame = legFrames.Length;
 
 			readyToCharge = false;
 			readyToLeap = false;
@@ -305,20 +306,20 @@ namespace IngameScript
 				readyToCharge = false;
 				readyToLeap = false;
 
-				leftFrame = frame + 32;
-				if (leftFrame > 63)
+				leftFrame = frame + legFrames.Length/2;
+				if (leftFrame >= legFrames.Length)
 				{
-					leftFrame -= 64;
+					leftFrame -= legFrames.Length;
 				}
 
 				Echo("Frame");
 				Echo(frame.ToString());
 
-				targetRightHipAngle = initialHip + (frame+1) * degreesPerFrame;
-				targetLeftHipAngle = -(initialHip + (leftFrame+1) * degreesPerFrame);
+				targetRightHipAngle = legFrames[frame].Item1;
+				targetLeftHipAngle = -legFrames[leftFrame].Item1;
 
-				targetRightKneeAngle = initialKnee - (frame+1) * degreesPerFrame;
-				targetLeftKneeAngle = -(initialKnee - (leftFrame+1) * degreesPerFrame);
+				targetRightKneeAngle = legFrames[frame].Item2;
+				targetLeftKneeAngle = -legFrames[leftFrame].Item2;
 
 				// -10 degrees on frames 17-40
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
@@ -360,8 +361,8 @@ namespace IngameScript
 					leftWing.TargetVelocityRPM = 60;
 				}
 
-				frame += 1;
-				if (frame > 63)
+				frame++;
+				if (frame >= legFrames.Length)
 				{
 					frame = 0;
 				}
@@ -381,12 +382,12 @@ namespace IngameScript
 
 				//TODO: move frame resets to a generic state changing funtion.
 				frame = 0;
-				leftFrame = 32;
-				targetRightHipAngle = initialHip;
-				targetLeftHipAngle = -initialHip;
+				leftFrame = legFrames.Length;
+				targetRightHipAngle = standingHip;
+				targetLeftHipAngle = -standingHip;
 
-				targetRightKneeAngle = initialKnee;
-				targetLeftKneeAngle = -initialKnee;
+				targetRightKneeAngle = standingKnee;
+				targetLeftKneeAngle = -standingKnee;
 
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
@@ -490,7 +491,7 @@ namespace IngameScript
 						currentState = State.Stand;
 					}
 
-					frame += 1;
+					frame++;
 				}
 				else
 				{
@@ -500,7 +501,7 @@ namespace IngameScript
 					leftThrust.Enabled = false;
 					//TODO: move frame resets to a generic state changing funtion.
 					frame = 0;
-					leftFrame = 32;
+					leftFrame = legFrames.Length;
 				}
 			}
 			else if (currentState == State.Leap)
@@ -536,11 +537,11 @@ namespace IngameScript
 
 					//TODO: increase leaping speed in the new paradigm? for some reason it seems at about half the original speed...
 
-					targetRightHipAngle = initialHip;
-					targetLeftHipAngle = -initialHip;
+					targetRightHipAngle = standingHip;
+					targetLeftHipAngle = -standingHip;
 
-					targetRightKneeAngle = initialKnee;
-					targetLeftKneeAngle = -initialKnee;
+					targetRightKneeAngle = standingKnee;
+					targetLeftKneeAngle = -standingKnee;
 
 					frontThrust.Enabled = true;
 					rightThrust.Enabled = true;
@@ -576,12 +577,12 @@ namespace IngameScript
 						}
 					}
 
-					frame += 1;
+					frame++;
 				}
 				else
 				{
 					frame = 0;
-					leftFrame = 32;
+					leftFrame = legFrames.Length;
 				}
 			}
 
@@ -601,6 +602,8 @@ namespace IngameScript
 			//Echo((targetRightKneeAngle - MathHelper.ToDegrees(rightKnee.Angle)).ToString());
 			//Echo("Corrected Knee Error");
 			Echo((correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))).ToString());
+
+			//TODO: build the newest lobster legs, add second knee rotors to code, then make THIS section halve the target knee angles - won't need to change values anywhere else, then
 
 			rightHip.TargetVelocityRPM = (float)rightHipPid.Control(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle)));
 			rightKnee.TargetVelocityRPM = (float)rightKneePid.Control(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle)));
