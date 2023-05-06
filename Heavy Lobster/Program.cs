@@ -57,14 +57,14 @@ namespace IngameScript
 
 		IMyThrust rearThrust, frontThrust, rightThrust, leftThrust;
 
-		IMyMotorStator rightWing, rightHip, rightKnee, rightAnkle, rightWrist, leftWing, leftHip, leftKnee, leftAnkle, leftWrist;
+		IMyMotorStator rightWing, rightOuterHip, rightInnerHip, rightOuterKnee, rightInnerKnee, rightAnkle, rightWrist, leftWing, leftInnerHip, leftOuterHip, leftInnerKnee, leftOuterKnee, leftAnkle, leftWrist;
 
 		double targetRightHipAngle, targetRightKneeAngle, targetRightAnkleAngle, targetLeftHipAngle, targetLeftKneeAngle, targetLeftAnkleAngle;
 		int frame, leftFrame;
 		bool readyToCharge, readyToLeap;
 
-		const double TimeStep = 1.0 / 60.0, pComp = 1, iComp = 0, dComp = 0;
-		PID rightHipPid, rightKneePid, rightAnklePid, rightElevPid, rightAzPid, leftHipPid, leftKneePid, leftAnklePid, rollPid, pitchPid, yawPid, leftElevPid, leftAzPid;
+		const double TimeStep = 1.0 / 60.0, pComp = 3, iComp = 0, dComp = 0;
+		PID rightInnerHipPid, rightOuterHipPid, rightInnerKneePid, rightOuterKneePid, rightAnklePid, rightElevPid, rightAzPid, leftInnerHipPid, leftOuterHipPid, leftInnerKneePid, leftOuterKneePid, leftAnklePid, rollPid, pitchPid, yawPid, leftElevPid, leftAzPid;
 		const float standingHip = 24, standingKnee = 15;
 
 		ImmutableArray<MyTuple<int, int>> legFrames = ImmutableArray.Create(
@@ -161,11 +161,15 @@ namespace IngameScript
 
 			rightWing = GridTerminalSystem.GetBlockWithName("Lobster Wing Rotor Right") as IMyMotorStator;
 			rightWrist = GridTerminalSystem.GetBlockWithName("Lobster Claw Wrist Hinge Right") as IMyMotorStator;
-			rightHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Rotor Right") as IMyMotorStator;
-			rightKnee = GridTerminalSystem.GetBlockWithName("Lobster Knee Rotor Right") as IMyMotorStator;
+			rightInnerHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Inner Rotor Right") as IMyMotorStator;
+			rightOuterHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Outer Rotor Right") as IMyMotorStator;
+			rightInnerKnee = GridTerminalSystem.GetBlockWithName("Lobster Knee Inner Rotor Right") as IMyMotorStator;
+			rightOuterKnee = GridTerminalSystem.GetBlockWithName("Lobster Knee Outer Rotor Right") as IMyMotorStator;
 			rightAnkle = GridTerminalSystem.GetBlockWithName("Lobster Ankle Rotor Right") as IMyMotorStator;
-			rightHipPid = new PID(pComp, iComp, dComp, TimeStep);
-			rightKneePid = new PID(pComp, iComp, dComp, TimeStep);
+			rightInnerHipPid = new PID(pComp, iComp, dComp, TimeStep);
+			rightOuterHipPid = new PID(pComp, iComp, dComp, TimeStep);
+			rightInnerKneePid = new PID(pComp, iComp, dComp, TimeStep);
+			rightOuterKneePid = new PID(pComp, iComp, dComp, TimeStep);
 			rightAnklePid = new PID(pComp, iComp, dComp, TimeStep);
 			rightElevPid = new PID(pComp, iComp, dComp, TimeStep);
 			rightAzPid = new PID(pComp, iComp, dComp, TimeStep);
@@ -177,11 +181,15 @@ namespace IngameScript
 
 			leftWing = GridTerminalSystem.GetBlockWithName("Lobster Wing Rotor Left") as IMyMotorStator;
 			leftWrist = GridTerminalSystem.GetBlockWithName("Lobster Claw Wrist Hinge Left") as IMyMotorStator;
-			leftHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Rotor Left") as IMyMotorStator;
-			leftKnee = GridTerminalSystem.GetBlockWithName("Lobster Knee Rotor Left") as IMyMotorStator;
+			leftInnerHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Inner Rotor Left") as IMyMotorStator;
+			leftOuterHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Outer Rotor Left") as IMyMotorStator;
+			leftInnerKnee = GridTerminalSystem.GetBlockWithName("Lobster Knee Inner Rotor Left") as IMyMotorStator;
+			leftOuterKnee = GridTerminalSystem.GetBlockWithName("Lobster Knee Outer Rotor Left") as IMyMotorStator;
 			leftAnkle = GridTerminalSystem.GetBlockWithName("Lobster Ankle Rotor Left") as IMyMotorStator;
-			leftHipPid = new PID(pComp, iComp, dComp, TimeStep);
-			leftKneePid = new PID(pComp, iComp, dComp, TimeStep);
+			leftInnerHipPid = new PID(pComp, iComp, dComp, TimeStep);
+			leftOuterHipPid = new PID(pComp, iComp, dComp, TimeStep);
+			leftInnerKneePid = new PID(pComp, iComp, dComp, TimeStep);
+			leftOuterKneePid = new PID(pComp, iComp, dComp, TimeStep);
 			leftAnklePid = new PID(pComp, iComp, dComp, TimeStep);
 			leftElevPid = new PID(pComp, iComp, dComp, TimeStep);
 			leftAzPid = new PID(pComp, iComp, dComp, TimeStep);
@@ -306,6 +314,9 @@ namespace IngameScript
 				readyToCharge = false;
 				readyToLeap = false;
 
+				((IMyTerminalBlock)rightInnerHip).SetValue<bool>("ShareInertiaTensor", false);
+				((IMyTerminalBlock)leftInnerHip).SetValue<bool>("ShareInertiaTensor", false);
+
 				leftFrame = frame + legFrames.Length/2;
 				if (leftFrame >= legFrames.Length)
 				{
@@ -345,7 +356,7 @@ namespace IngameScript
 				{
 					leftMags.ForEach(item => item.Unlock());
 				}
-				else if (48 <= leftFrame || frame < 17)
+				else if (48 <= leftFrame || leftFrame < 17)
 				{
 					leftMags.ForEach(item => item.Lock());
 				}
@@ -380,6 +391,9 @@ namespace IngameScript
 				readyToCharge = false;
 				readyToLeap = false;
 
+				((IMyTerminalBlock)rightInnerHip).SetValue<bool>("ShareInertiaTensor", true);
+				((IMyTerminalBlock)leftInnerHip).SetValue<bool>("ShareInertiaTensor", true);
+
 				//TODO: move frame resets to a generic state changing funtion.
 				frame = 0;
 				leftFrame = legFrames.Length;
@@ -397,7 +411,7 @@ namespace IngameScript
 
 				if ((Math.Abs(gravityVec.X) < 0.5) && (Math.Abs(gravityVec.Z) < 0.5))
 				{
-					if ((Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1))
+					if ((Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightInnerHip.Angle) + MathHelper.ToDegrees(rightOuterHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightInnerKnee.Angle) + MathHelper.ToDegrees(rightOuterKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1))
 					{
 						rightMags.ForEach(item => item.Lock());
 					}
@@ -405,7 +419,7 @@ namespace IngameScript
 					{
 						rightMags.ForEach(item => item.Unlock());
 					}
-					if ((Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
+					if ((Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftInnerHip.Angle) + MathHelper.ToDegrees(leftOuterHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftInnerKnee.Angle) + MathHelper.ToDegrees(leftOuterKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
 					{
 						leftMags.ForEach(item => item.Lock());
 					}
@@ -439,7 +453,7 @@ namespace IngameScript
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
 
-				if (!readyToCharge && rightMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && leftMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && (Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
+				if (!readyToCharge && rightMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && leftMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && (Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightInnerHip.Angle) + MathHelper.ToDegrees(rightOuterHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightInnerKnee.Angle) + MathHelper.ToDegrees(rightOuterKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftInnerHip.Angle) + MathHelper.ToDegrees(leftOuterHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftInnerKnee.Angle) + MathHelper.ToDegrees(leftOuterKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
 				{
 					readyToCharge = true;
 					rightMags.ForEach(item => item.Lock());
@@ -515,16 +529,16 @@ namespace IngameScript
 				rightMags.ForEach(item => item.Unlock());
 				leftMags.ForEach(item => item.Unlock());
 
-				targetRightHipAngle = 185;
+				targetRightHipAngle = -84;
 				targetLeftHipAngle = -targetRightHipAngle;
 
-				targetRightKneeAngle = -197;
+				targetRightKneeAngle = 146;
 				targetLeftKneeAngle = -targetRightKneeAngle;
 
 				targetRightAnkleAngle = targetRightHipAngle + targetRightKneeAngle;
 				targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle;
 
-				if (!readyToLeap && rightMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && leftMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && (Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
+				if (!readyToLeap && rightMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && leftMags.All(i => i.LockMode == LandingGearMode.ReadyToLock) && (Math.Abs(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightInnerHip.Angle) + MathHelper.ToDegrees(rightOuterHip.Angle))) < 0.1) && (Math.Abs(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightInnerKnee.Angle) + MathHelper.ToDegrees(rightOuterKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftInnerHip.Angle) + MathHelper.ToDegrees(leftOuterHip.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftInnerKnee.Angle) + MathHelper.ToDegrees(leftOuterKnee.Angle))) < 0.1) && (Math.Abs(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle))) < 0.1))
 				{
 					readyToLeap = true;
 					rightMags.ForEach(item => item.Lock());
@@ -593,23 +607,27 @@ namespace IngameScript
 			Echo("Ankle Target");
 			Echo(targetRightAnkleAngle.ToString());
 			Echo("Hip Current");
-			Echo(MathHelper.ToDegrees(rightHip.Angle).ToString());
+			Echo(((MathHelper.ToDegrees(rightInnerHip.Angle) + MathHelper.ToDegrees(rightOuterHip.Angle))%360).ToString());
 			Echo("Hip Error");
 			//Echo((targetRightHipAngle - MathHelper.ToDegrees(rightHip.Angle)).ToString());
 			//Echo("Corrected Hip Error");
-			Echo((correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle))).ToString());
+			Echo(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightInnerHip.Angle) + MathHelper.ToDegrees(rightOuterHip.Angle)).ToString());
 			Echo("Knee Error");
 			//Echo((targetRightKneeAngle - MathHelper.ToDegrees(rightKnee.Angle)).ToString());
 			//Echo("Corrected Knee Error");
-			Echo((correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle))).ToString());
+			Echo(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightInnerKnee.Angle) + MathHelper.ToDegrees(rightOuterKnee.Angle)).ToString());
 
 			//TODO: build the newest lobster legs, add second knee rotors to code, then make THIS section halve the target knee angles - won't need to change values anywhere else, then
 
-			rightHip.TargetVelocityRPM = (float)rightHipPid.Control(correctError(targetRightHipAngle, MathHelper.ToDegrees(rightHip.Angle)));
-			rightKnee.TargetVelocityRPM = (float)rightKneePid.Control(correctError(targetRightKneeAngle, MathHelper.ToDegrees(rightKnee.Angle)));
+			rightInnerHip.TargetVelocityRPM = (float)rightInnerHipPid.Control(correctError(targetRightHipAngle/2, MathHelper.ToDegrees(rightInnerHip.Angle)));
+			rightOuterHip.TargetVelocityRPM = (float)rightOuterHipPid.Control(correctError(targetRightHipAngle/2, MathHelper.ToDegrees(rightOuterHip.Angle)));
+			rightInnerKnee.TargetVelocityRPM = (float)rightInnerKneePid.Control(correctError(targetRightKneeAngle/2, MathHelper.ToDegrees(rightInnerKnee.Angle)));
+			rightOuterKnee.TargetVelocityRPM = (float)rightOuterKneePid.Control(correctError(targetRightKneeAngle/2, MathHelper.ToDegrees(rightOuterKnee.Angle)));
 			rightAnkle.TargetVelocityRPM = (float)rightAnklePid.Control(correctError(targetRightAnkleAngle, MathHelper.ToDegrees(rightAnkle.Angle)));
-			leftHip.TargetVelocityRPM = (float)leftHipPid.Control(correctError(targetLeftHipAngle, MathHelper.ToDegrees(leftHip.Angle)));
-			leftKnee.TargetVelocityRPM = (float)leftKneePid.Control(correctError(targetLeftKneeAngle, MathHelper.ToDegrees(leftKnee.Angle)));
+			leftInnerHip.TargetVelocityRPM = (float)leftInnerHipPid.Control(correctError(targetLeftHipAngle/2, MathHelper.ToDegrees(leftInnerHip.Angle)));
+			leftOuterHip.TargetVelocityRPM = (float)leftOuterHipPid.Control(correctError(targetLeftHipAngle/2, MathHelper.ToDegrees(leftOuterHip.Angle)));
+			leftInnerKnee.TargetVelocityRPM = (float)leftInnerKneePid.Control(correctError(targetLeftKneeAngle/2, MathHelper.ToDegrees(leftInnerKnee.Angle)));
+			leftOuterKnee.TargetVelocityRPM = (float)leftOuterKneePid.Control(correctError(targetLeftKneeAngle/2, MathHelper.ToDegrees(leftOuterKnee.Angle)));
 			leftAnkle.TargetVelocityRPM = (float)leftAnklePid.Control(correctError(targetLeftAnkleAngle, MathHelper.ToDegrees(leftAnkle.Angle)));
 		}
 
