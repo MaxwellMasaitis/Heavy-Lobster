@@ -57,7 +57,7 @@ namespace IngameScript
 
 		IMyThrust rearThrust, frontThrust, rightThrust, leftThrust;
 
-		IMyMotorStator rightWing, rightOuterHip, rightInnerHip, rightOuterKnee, rightInnerKnee, rightAnkle, rightWrist, leftWing, leftInnerHip, leftOuterHip, leftInnerKnee, leftOuterKnee, leftAnkle, leftWrist;
+		IMyMotorStator rightWing, rightOuterHip, rightInnerHip, rightOuterKnee, rightInnerKnee, rightAnkle, rightShoulder, rightElbow, rightWrist, leftWing, leftInnerHip, leftOuterHip, leftInnerKnee, leftOuterKnee, leftAnkle, leftShoulder, leftElbow, leftWrist;
 
 		double targetRightHipAngle, targetRightKneeAngle, targetRightAnkleAngle, targetLeftHipAngle, targetLeftKneeAngle, targetLeftAnkleAngle;
 		int frame, leftFrame;
@@ -160,7 +160,9 @@ namespace IngameScript
 			sensor = GridTerminalSystem.GetBlockWithName("Lobster Automaton Sensor") as IMySensorBlock;
 
 			rightWing = GridTerminalSystem.GetBlockWithName("Lobster Wing Rotor Right") as IMyMotorStator;
-			rightWrist = GridTerminalSystem.GetBlockWithName("Lobster Claw Wrist Hinge Right") as IMyMotorStator;
+            rightShoulder = GridTerminalSystem.GetBlockWithName("Lobster Claw Shoulder Hinge Right") as IMyMotorStator;
+            rightElbow = GridTerminalSystem.GetBlockWithName("Lobster Claw Elbow Hinge Right") as IMyMotorStator;
+            rightWrist = GridTerminalSystem.GetBlockWithName("Lobster Claw Wrist Hinge Right") as IMyMotorStator;
 			rightInnerHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Inner Rotor Right") as IMyMotorStator;
 			rightOuterHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Outer Rotor Right") as IMyMotorStator;
 			rightInnerKnee = GridTerminalSystem.GetBlockWithName("Lobster Knee Inner Rotor Right") as IMyMotorStator;
@@ -180,7 +182,9 @@ namespace IngameScript
 			rightMagsGroup.GetBlocksOfType(rightMags);
 
 			leftWing = GridTerminalSystem.GetBlockWithName("Lobster Wing Rotor Left") as IMyMotorStator;
-			leftWrist = GridTerminalSystem.GetBlockWithName("Lobster Claw Wrist Hinge Left") as IMyMotorStator;
+            leftShoulder = GridTerminalSystem.GetBlockWithName("Lobster Claw Shoulder Hinge Left") as IMyMotorStator;
+            leftElbow = GridTerminalSystem.GetBlockWithName("Lobster Claw Elbow Hinge Left") as IMyMotorStator;
+            leftWrist = GridTerminalSystem.GetBlockWithName("Lobster Claw Wrist Hinge Left") as IMyMotorStator;
 			leftInnerHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Inner Rotor Left") as IMyMotorStator;
 			leftOuterHip = GridTerminalSystem.GetBlockWithName("Lobster Hip Outer Rotor Left") as IMyMotorStator;
 			leftInnerKnee = GridTerminalSystem.GetBlockWithName("Lobster Knee Inner Rotor Left") as IMyMotorStator;
@@ -286,17 +290,26 @@ namespace IngameScript
 			leftGyro.Roll = (float)rollPid.Control(-gravityVec.X);
 			leftGyro.Pitch = (float)pitchPid.Control(gravityVec.Z);
 
-			if (rightTurret.HasTarget || leftTurret.HasTarget)
+			// TODO: move to standing
+			// TODO: manual turret control should also enable the fire when shooting
+			if ((rightTurret.Enabled && leftTurret.Enabled) && (rightTurret.HasTarget || leftTurret.HasTarget))
 			{
-				rightWrist.TargetVelocityRPM = 60;
-				leftWrist.TargetVelocityRPM = 60;
-			}
+				rightShoulder.TargetVelocityRPM = -60;
+                rightElbow.TargetVelocityRPM = -60;
+                rightWrist.TargetVelocityRPM = -60;
+                leftShoulder.TargetVelocityRPM = -60;
+                leftElbow.TargetVelocityRPM = -60;
+                leftWrist.TargetVelocityRPM = -60;
+            }
 			else
-			{
-				rightWrist.TargetVelocityRPM = -60;
-				leftWrist.TargetVelocityRPM = -60;
-				//set turret rotors to 0 and +-10
-				if (!rightTurret.IsUnderControl)
+            {
+                rightShoulder.TargetVelocityRPM = 60;
+                rightElbow.TargetVelocityRPM = 60;
+                rightWrist.TargetVelocityRPM = 60;
+                leftShoulder.TargetVelocityRPM = 60;
+                leftElbow.TargetVelocityRPM = 60;
+                leftWrist.TargetVelocityRPM = 60;
+                if (!rightTurret.IsUnderControl)
 				{
 					rightTurret.ElevationRotor.TargetVelocityRPM = (float)rightElevPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.ElevationRotor.Angle)));
 					rightTurret.AzimuthRotor.TargetVelocityRPM = (float)rightAzPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.AzimuthRotor.Angle)));
@@ -315,8 +328,8 @@ namespace IngameScript
 				frontThrust.Enabled = false;
 				rightThrust.Enabled = false;
 				leftThrust.Enabled = false;
-				rightTurret.Enabled = true;
-				leftTurret.Enabled = true;
+				rightTurret.Enabled = false;
+				leftTurret.Enabled = false;
 				readyToCharge = false;
 				readyToLeap = false;
 
