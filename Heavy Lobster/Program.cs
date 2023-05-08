@@ -296,10 +296,16 @@ namespace IngameScript
 				rightWrist.TargetVelocityRPM = -60;
 				leftWrist.TargetVelocityRPM = -60;
 				//set turret rotors to 0 and +-10
-				rightTurret.ElevationRotor.TargetVelocityRPM = (float)rightElevPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.ElevationRotor.Angle)));
-				rightTurret.AzimuthRotor.TargetVelocityRPM = (float)rightAzPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.AzimuthRotor.Angle)));
-				leftTurret.ElevationRotor.TargetVelocityRPM = (float)leftElevPid.Control(correctError(0, MathHelper.ToDegrees(leftTurret.ElevationRotor.Angle)));
-				leftTurret.AzimuthRotor.TargetVelocityRPM = (float)leftAzPid.Control(correctError(0, MathHelper.ToDegrees(leftTurret.AzimuthRotor.Angle)));
+				if (!rightTurret.IsUnderControl)
+				{
+					rightTurret.ElevationRotor.TargetVelocityRPM = (float)rightElevPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.ElevationRotor.Angle)));
+					rightTurret.AzimuthRotor.TargetVelocityRPM = (float)rightAzPid.Control(correctError(0, MathHelper.ToDegrees(rightTurret.AzimuthRotor.Angle)));
+				}
+				if (!leftTurret.IsUnderControl)
+				{
+					leftTurret.ElevationRotor.TargetVelocityRPM = (float)leftElevPid.Control(correctError(0, MathHelper.ToDegrees(leftTurret.ElevationRotor.Angle)));
+					leftTurret.AzimuthRotor.TargetVelocityRPM = (float)leftAzPid.Control(correctError(0, MathHelper.ToDegrees(leftTurret.AzimuthRotor.Angle)));
+				}
 			}
 
 			if (currentState == State.Walk)
