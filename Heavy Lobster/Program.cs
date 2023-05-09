@@ -596,7 +596,7 @@ namespace IngameScript
                     rightMags.ForEach(item => item.Unlock());
                     leftMags.ForEach(item => item.Unlock());
 
-                    //TODO: increase leaping speed in the new paradigm? for some reason it seems at about half the original speed...
+                    //TODO: small hops and medium leaps are possible - small hops simply disable the thrusters, medium is not tested but try 30 frames?
 
                     targetRightHipAngle = standingHip;
                     targetLeftHipAngle = -standingHip;
@@ -635,6 +635,8 @@ namespace IngameScript
                         leftShoulder.TargetVelocityRPM = 60;
                         leftWrist.TargetVelocityRPM = 60;
 
+                        //TODO: disabling the thrusters seems to work too - even bouncier though
+                        // otherwise, leaving them on has an issue where only the rear thrusters seem to want to dampen (which is wrong)
                         frontThrust.ThrustOverridePercentage = 0;
                         rightThrust.ThrustOverridePercentage = 0;
                         leftThrust.ThrustOverridePercentage = 0;
