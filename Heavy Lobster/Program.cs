@@ -336,7 +336,12 @@ namespace IngameScript
 				((IMyTerminalBlock)rightInnerHip).SetValue<bool>("ShareInertiaTensor", false);
 				((IMyTerminalBlock)leftInnerHip).SetValue<bool>("ShareInertiaTensor", false);
 
-				leftFrame = frame + legFrames.Length/2;
+                rightShoulder.UpperLimitDeg = -15;
+                rightWrist.UpperLimitDeg = -15;
+                leftShoulder.UpperLimitDeg = -15;
+                leftWrist.UpperLimitDeg = -15;
+
+                leftFrame = frame + legFrames.Length/2;
 				if (leftFrame >= legFrames.Length)
 				{
 					leftFrame -= legFrames.Length;
@@ -413,8 +418,13 @@ namespace IngameScript
 				((IMyTerminalBlock)rightInnerHip).SetValue<bool>("ShareInertiaTensor", true);
 				((IMyTerminalBlock)leftInnerHip).SetValue<bool>("ShareInertiaTensor", true);
 
-				//TODO: move frame resets to a generic state changing funtion.
-				frame = 0;
+				rightShoulder.UpperLimitDeg = -15;
+                rightWrist.UpperLimitDeg = -15;
+                leftShoulder.UpperLimitDeg = -15;
+                leftWrist.UpperLimitDeg = -15;
+
+                //TODO: move frame resets to a generic state changing funtion.
+                frame = 0;
 				leftFrame = legFrames.Length;
 				targetRightHipAngle = standingHip;
 				targetLeftHipAngle = -standingHip;
@@ -460,7 +470,15 @@ namespace IngameScript
 				leftTurret.Enabled = false;
 				readyToLeap = false;
 
-				rightMags.ForEach(item => item.Unlock());
+                ((IMyTerminalBlock)rightInnerHip).SetValue<bool>("ShareInertiaTensor", true);
+                ((IMyTerminalBlock)leftInnerHip).SetValue<bool>("ShareInertiaTensor", true);
+
+                rightShoulder.UpperLimitDeg = 15;
+                rightWrist.UpperLimitDeg = 15;
+                leftShoulder.UpperLimitDeg = 15;
+                leftWrist.UpperLimitDeg = 15;
+
+                rightMags.ForEach(item => item.Unlock());
 				leftMags.ForEach(item => item.Unlock());
 
 				targetRightHipAngle = 179;
@@ -545,7 +563,15 @@ namespace IngameScript
 				leftTurret.Enabled = false;
 				readyToCharge = false;
 
-				rightMags.ForEach(item => item.Unlock());
+                ((IMyTerminalBlock)rightInnerHip).SetValue<bool>("ShareInertiaTensor", true);
+                ((IMyTerminalBlock)leftInnerHip).SetValue<bool>("ShareInertiaTensor", true);
+
+                rightShoulder.UpperLimitDeg = 90;
+                rightWrist.UpperLimitDeg = 90;
+                leftShoulder.UpperLimitDeg = 90;
+                leftWrist.UpperLimitDeg = 90;
+
+                rightMags.ForEach(item => item.Unlock());
 				leftMags.ForEach(item => item.Unlock());
 
 				targetRightHipAngle = -84;
@@ -581,10 +607,15 @@ namespace IngameScript
 					leftThrust.Enabled = true;
 
 					if (frame < 150)
-					{
-						//Approximately this in 1g agrav:
-						//2000 / remoteControl.CalculateShipMass().PhysicalMass;
-						frontThrust.ThrustOverridePercentage = 1;
+                    {
+                        // test more
+                        rightShoulder.TargetVelocityRPM = -60;
+                        rightWrist.TargetVelocityRPM = -60;
+                        leftShoulder.TargetVelocityRPM = -60;
+                        leftWrist.TargetVelocityRPM = -60;
+                        //Approximately this in 1g agrav:
+                        //2000 / remoteControl.CalculateShipMass().PhysicalMass;
+                        frontThrust.ThrustOverridePercentage = 1;
 						rightThrust.ThrustOverridePercentage = 1;
 						leftThrust.ThrustOverridePercentage = 1;
 
@@ -592,8 +623,17 @@ namespace IngameScript
 						targetLeftAnkleAngle = targetLeftHipAngle + targetLeftKneeAngle + 10;
 					}
 					else if (frame >= 150)
-					{
-						frontThrust.ThrustOverridePercentage = 0;
+                    {
+                        rightShoulder.UpperLimitDeg = 0;
+                        rightWrist.UpperLimitDeg = 0;
+                        leftShoulder.UpperLimitDeg = 0;
+                        leftWrist.UpperLimitDeg = 0;
+                        rightShoulder.TargetVelocityRPM = 60;
+                        rightWrist.TargetVelocityRPM = 60;
+                        leftShoulder.TargetVelocityRPM = 60;
+                        leftWrist.TargetVelocityRPM = 60;
+
+                        frontThrust.ThrustOverridePercentage = 0;
 						rightThrust.ThrustOverridePercentage = 0;
 						leftThrust.ThrustOverridePercentage = 0;
 						remoteControl.DampenersOverride = true;
